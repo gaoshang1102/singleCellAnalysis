@@ -1,3 +1,6 @@
+library(clusterProfiler)
+library(org.Mm.eg.db)
+
 GOErichment <- function(geneList, figurePlotName){
 ego2 <- enrichGO(gene         =  geneList,
                  OrgDb         = org.Hs.eg.db,

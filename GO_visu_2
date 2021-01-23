@@ -1,0 +1,77 @@
+ego2 <- enrichGO(gene         =  LowGlucose[[4]],
+                 OrgDb         = org.Hs.eg.db,
+                 keyType       = 'SYMBOL',
+                 ont           = "BP",
+                 pAdjustMethod = "BH",
+                 pvalueCutoff  = 0.01,
+                 qvalueCutoff  = 0.05)
+ego2 <- data.frame(Term = ego2@result$Description,
+                   Gene_ratio = ego2@result$Count, 
+                   Pvalue = ego2@result$p.adjust,
+                   stringsAsFactors = F)
+ego2 <- data.frame(Term = ego2$Term,
+                   Gene_ratio = ego2$Gene_ratio,
+                   Pvalue = ego2$Pvalue,
+                   stringsAsFactors = F)
+ego2_tmp_higher <- ego2
+ego2_tmp_lower <- ego2[1:30, ]
+ego2_lower <- tolower(c("Fatty acid metabolic process",
+                        "Small molecule catabolic process",
+                        "Carboxylic acid catabolic process",
+                        "Xenobiotic metabolic process",
+                        "Steroid metabolic process",
+                        "Lipid catabolic process",
+                        "Alcohol metabolic process",
+                        "Fatty acid derivative metabolic process"))
+
+ego2_higher <- tolower(c("Acute inflammatory response",
+                         "humoral immune response",
+                         "Acute-phase response",
+                         "Complement activation",
+                         "Platelet degranulation",
+                         "Regulation of cell-cell adhesion",
+                         "Regulation of angiogenesis",
+                         "Extracellular matrix organization"))
+
+ego2_lower %in% ego2_tmp_lower$Term
+ego2_higher %in% ego2_tmp_higher$Term
+ego2_lower %in% ego2$Term
+
+ego2_tmp_higher <- ego2_tmp_higher[ego2_tmp_higher$Term %in% ego2_higher, ]
+ego2_tmp_lower <- ego2_tmp_lower[ego2_tmp_lower$Term %in% ego2_lower, ]
+ego2_tmp_higher$regulation <- "up"
+ego2_tmp_lower$regulation <- "down"
+ego2_tmp_lower$Gene_ratio <- -1*ego2_tmp_lower$Gene_ratio
+
+ego2_all <- rbind(ego2_tmp_higher, ego2_tmp_lower)
+ego2_all$Pvalue_1 <- ego2_all$Pvalue
+#ego2_all$Term <- as.character(seq(1:15))
+ego2_tmp_higher$Term <- as.character(seq(10,17))
+ego2_tmp_lower$Term <- rev(as.character(seq(20,27)))
+#ego2_tmp_higher$Term <- factor(ego2_tmp_higher$Term, levels = rev(ego2_tmp_higher$Term[order(ego2_tmp_higher$Gene_ratio)]))
+#ego2_tmp_lower$Term <- factor(ego2_tmp_lower$Term, levels = rev(ego2_tmp_lower$Term[order(ego2_tmp_lower$Gene_ratio)]))
+
+#ggplot(ego2_all, aes(y = Gene_ratio, x = factor(ego2_all$Term, levels = rev(ego2_all$Term[order(ego2_all$Gene_ratio)])))) +
+png("LowGlucose_vs_LowGlucoseHSC.png", height = 1500, width = 1000, res = 200)
+ggplot( mapping = aes(Term, Gene_ratio)) +
+  geom_col(aes(fill = Pvalue), data = ego2_tmp_higher) + 
+  scale_fill_gradient(low = "#FF3333", high = "#FF9999") +
+  new_scale("fill") +
+  geom_col(aes(fill = Pvalue), data = ego2_tmp_lower) +
+  scale_fill_gradient(low = "#3C1EFF", high = "#D9D2FF") +
+  theme_bw() + 
+  theme(legend.title = element_text(size=14,face="bold"),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        plot.title = element_text(color="black", size=16, face="bold.ariel", hjust = 0.5),
+        axis.title=element_text(size=14,face="bold"),
+        axis.text=element_text(size=14, face="bold", color = "black",  family="Arial"),
+        legend.text=element_text(size=12, face="bold"),
+        panel.border = element_rect(colour = "black", fill=NA, size=2)) + ylab("") +
+  guides(colour = guide_colourbar(order = 1),
+         size = guide_legend(order = 2)) + xlab("") +
+  scale_y_continuous(breaks=c(-40,-20,0,20),
+                     labels=abs(c(40,20,0,20))) +
+  scale_x_discrete(breaks=as.character(c(seq(10,17), seq(20,27))),
+                   labels=c(ego2_higher, rev(ego2_lower))) 
+dev.off()
+

@@ -1,0 +1,86 @@
+library(Seurat)
+library(BITFAM)
+
+Seurat_analysis <- function(data_path, res = 0.3){
+  data <- Read10X(data.dir = data_path)
+  data <- CreateSeuratObject(counts = data, project = "data", min.cells = 3, min.features = 200)
+  data[["percent.mt"]] <- PercentageFeatureSet(data, pattern = "^MT-")
+  data <- subset(data, subset = percent.mt < 5)
+  data <- NormalizeData(data, normalization.method = "LogNormalize", scale.factor = 10000)
+  data <- FindVariableFeatures(data, selection.method = "vst", nfeatures = 5000)
+  all.genes <- rownames(data)
+  data <- ScaleData(data, features = all.genes)
+  data <- RunPCA(data, features = VariableFeatures(object = data))
+  data <- FindNeighbors(data, dims = 1:20)
+  data <- FindClusters(data, resolution = res)
+  data <- RunUMAP(data, dims = 1:20)
+  return(data)
+}
+
+day0 <- Seurat_analysis("/home/ubuntu/lucy_data/day0/filtered_feature_bc_matrix/")
+hour6 <- Seurat_analysis("/home/ubuntu/lucy_data/hour6/filtered_feature_bc_matrix/")
+day1 <- Seurat_analysis("/home/ubuntu/lucy_data/day1/filtered_feature_bc_matrix/")
+day2 <- Seurat_analysis("/home/ubuntu/lucy_data/day2/filtered_feature_bc_matrix/")
+day3 <- Seurat_analysis("/home/ubuntu/lucy_data/day3/filtered_feature_bc_matrix/")
+day8 <- Seurat_analysis("/home/ubuntu/lucy_data/day8/filtered_feature_bc_matrix/")
+
+DimPlot(day0, reduction = "umap")
+DimPlot(hour6, reduction = "umap")
+DimPlot(day1, reduction = "umap")
+DimPlot(day2, reduction = "umap")
+DimPlot(day3, reduction = "umap")
+DimPlot(day8, reduction = "umap")
+
+day0_umap_dat <- as.data.frame(Embeddings(object = day0, reduction = "umap"))
+hour6_umap_dat <- as.data.frame(Embeddings(object = hour6, reduction = "umap"))
+day1_umap_dat <- as.data.frame(Embeddings(object = day1, reduction = "umap"))
+day2_umap_dat <- as.data.frame(Embeddings(object = day2, reduction = "umap"))
+day3_umap_dat <- as.data.frame(Embeddings(object = day3, reduction = "umap"))
+day8_umap_dat <- as.data.frame(Embeddings(object = day8, reduction = "umap"))
+
+day0_cells <- rownames(day0_umap_dat)[day0_umap_dat$UMAP_1 > -5 & day0_umap_dat$UMAP_2 > -8]
+hour6_cells <- rownames(hour6_umap_dat)[hour6_umap_dat$UMAP_1 > -9 & hour6_umap_dat$UMAP_2 < 8]
+day1_cells <- rownames(day1_umap_dat)[day1_umap_dat$UMAP_1 > -5 & day1_umap_dat$UMAP_2 < 10]
+day2_cells <- rownames(day2_umap_dat)[day2_umap_dat$UMAP_1 < 7 & day2_umap_dat$UMAP_2 > -10]
+day3_cells <- rownames(day3_umap_dat)[day3_umap_dat$UMAP_1 < 5 & day3_umap_dat$UMAP_2 < 10]
+day8_cells <- rownames(day8_umap_dat)[day8_umap_dat$UMAP_1 > -10 & day8_umap_dat$UMAP_2 < 7]
+
+Seurat_analysis_from_counts_table <- function(dat_matrix, res = 0.3){
+  data <- CreateSeuratObject(counts = dat_matrix, project = "data", min.cells = 3, min.features = 200)
+  data[["percent.mt"]] <- PercentageFeatureSet(data, pattern = "^MT-")
+  data <- subset(data, subset = percent.mt < 5)
+  data <- NormalizeData(data, normalization.method = "LogNormalize", scale.factor = 10000)
+  data <- FindVariableFeatures(data, selection.method = "vst", nfeatures = 5000)
+  all.genes <- rownames(data)
+  data <- ScaleData(data, features = all.genes)
+  data <- RunPCA(data, features = VariableFeatures(object = data))
+  data <- FindNeighbors(data, dims = 1:20)
+  data <- FindClusters(data, resolution = res)
+  data <- RunUMAP(data, dims = 1:20)
+  return(data)
+}
+
+day0 <- Seurat_analysis_from_counts_table(GetAssayData(object = day0, slot = "counts")[, day0_cells])
+hour6 <- Seurat_analysis_from_counts_table(GetAssayData(object = hour6, slot = "counts")[, hour6_cells])
+day1 <- Seurat_analysis_from_counts_table(GetAssayData(object = day1, slot = "counts")[, day1_cells])
+day2 <- Seurat_analysis_from_counts_table(GetAssayData(object = day2, slot = "counts")[, day2_cells])
+day3 <- Seurat_analysis_from_counts_table(GetAssayData(object = day3, slot = "counts")[, day3_cells])
+day8 <- Seurat_analysis_from_counts_table(GetAssayData(object = day8, slot = "counts")[, day8_cells])
+
+DimPlot(day0, reduction = "umap")
+DimPlot(hour6, reduction = "umap")
+DimPlot(day1, reduction = "umap")
+DimPlot(day2, reduction = "umap")
+DimPlot(day3, reduction = "umap")
+DimPlot(day8, reduction = "umap")
+
+saveRDS(day0, file = "/home/ubuntu/lucy_data/day0/day0_seurat.rds")
+saveRDS(hour6, file = "/home/ubuntu/lucy_data/hour6/hour6_seurat.rds")
+saveRDS(day1, file = "/home/ubuntu/lucy_data/day1/day1_seurat.rds")
+saveRDS(day2, file = "/home/ubuntu/lucy_data/day2/day2_seurat.rds")
+saveRDS(day3, file = "/home/ubuntu/lucy_data/day3/day3_seurat.rds")
+saveRDS(day8, file = "/home/ubuntu/lucy_data/day8/day8_seurat.rds")
+
+
+
+
